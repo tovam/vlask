@@ -8,10 +8,13 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 
-from flask import Flask, send_from_directory, redirect
+try:
+    from flask import Flask, send_from_directory, redirect
+except:
+    print("Flask is missing")
 
 
-VERSION = "0.0.1"
+VERSION = "0.1.0"
 
 DEFAULT_FRONTEND_DIR = "frontend"
 DEFAULT_PUBLIC_DIR = "public"
@@ -614,7 +617,24 @@ Usage:
   python vlask.py create    Initialize a Vlask project in the current directory
   python vlask.py bundle    Build the production frontend into ./public
   python vlask.py update    Update vlask.py from the configured URL (see ~/.vlask.yml)
+  python vlask.py use       Show notes about how to install and use Vlask
   python vlask.py help      Show this help (default)
+"""
+
+USE_TEXT = """Vlask usage notes
+
+- Put vlask.py in a directory that is on your Python path (for example: a shared "libs" folder).
+- Or add its directory to PYTHONPATH, e.g.:
+    export PYTHONPATH="$PYTHONPATH:/path/to/your/libs"
+- Import it in your projects with:
+    from vlask import Vlask
+- To have a CLI command, create a small script like:
+    #!/usr/bin/env python3
+    from vlask import main
+    if __name__ == "__main__":
+        main()
+  and put it in a directory on your PATH (for example: ~/bin), then:
+    export PATH="$PATH:$HOME/bin"
 """
 
 
@@ -737,6 +757,10 @@ def _cmd_update():
     print("[Vlask] Update complete. Restart your process to use the new version.")
 
 
+def _cmd_use():
+    print(USE_TEXT)
+
+
 def main():
     if len(sys.argv) == 2:
         cmd = sys.argv[1]
@@ -746,6 +770,8 @@ def main():
             _cmd_bundle()
         elif cmd == "update":
             _cmd_update()
+        elif cmd == "use":
+            _cmd_use()
         else:
             print(HELP_TEXT)
     else:
