@@ -14,7 +14,7 @@ except:
     print("Flask is missing")
 
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 
 DEFAULT_FRONTEND_DIR = "frontend"
 DEFAULT_PUBLIC_DIR = "public"
@@ -183,6 +183,7 @@ export default defineConfig({
   root: ".",
   plugins: [react()],
   server: {
+    // host: '0.0.0.0', // uncomment to serve over network
     port: vitePort,
     strictPort: true,
     proxy: {
