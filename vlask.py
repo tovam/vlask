@@ -14,7 +14,7 @@ except:
     print("Flask is missing")
 
 
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 
 DEFAULT_FRONTEND_DIR = "frontend"
 DEFAULT_PUBLIC_DIR = "public"
@@ -648,18 +648,46 @@ def _create_server_py(project_root):
         print("[Vlask] server.py already exists, skipping.")
         return
 
-    content = """from vlask import Vlask
+    content = """import os
+from flask import Flask, jsonify, request
+try:
+    from vlask import Vlask
+    HAS_VLASK = True
+except ImportError:
+    Vlask = None
+    HAS_VLASK = False
 
 PORT = 5000
+PORT = int(os.getenv("PORT", PORT))
 
-app = Vlask(__name__, prod=False, backend_port=PORT)
+ENV_PROD = os.getenv("PROD", "") == "1"
+DEV_MODE = HAS_VLASK and (not ENV_PROD)
 
+if DEV_MODE:
+    app = Vlask(__name__, prod=False, backend_port=PORT)
+else:
+    app = Flask(__name__, static_folder="public", static_url_path="")
+
+    @app.route("/")
+    def index():
+        return app.send_static_file("index.html")
+
+    @app.errorhandler(404)
+    def spa_fallback(e):
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "not found"}), 404
+        try:
+            return app.send_static_file("index.html")
+        except Exception:
+            return "index.html not found in ./public", 404
+
+# --- Routes ---
 @app.route("/api/ping")
 def ping():
     return {"ok": True}
 
 if __name__ == "__main__":
-    app.run(port=PORT, debug=True)
+    app.run(port=PORT, debug=DEV_MODE)
 """
     server_py.write_text(content, encoding="utf-8")
     print("[Vlask] Created server.py")
