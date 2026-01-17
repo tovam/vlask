@@ -14,7 +14,7 @@ except:
     print("Flask is missing")
 
 
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 
 DEFAULT_FRONTEND_DIR = "frontend"
 DEFAULT_PUBLIC_DIR = "public"
@@ -615,7 +615,7 @@ def _extract_version_from_text(text: str):
 HELP_TEXT = f"""Vlask helper script (version {VERSION})
 
 Usage:
-  python vlask.py create    Initialize a Vlask project in the current directory
+  python vlask.py init      Initialize a Vlask project in the current directory
   python vlask.py bundle    Build the production frontend into ./public
   python vlask.py update    Update vlask.py from the configured URL (see ~/.vlask.yml)
   python vlask.py use       Show notes about how to install and use Vlask
@@ -793,7 +793,7 @@ def _cmd_use():
 def main():
     if len(sys.argv) == 2:
         cmd = sys.argv[1]
-        if cmd == "create":
+        if cmd == "init":
             _cmd_create()
         elif cmd == "bundle":
             _cmd_bundle()
