@@ -28,7 +28,6 @@ class Vlask(Flask):
 
     Layout:
       - server.py
-      - vlask.py
       - frontend/   (Vite + React app)
       - public/     (Vite build output in production)
     """
@@ -610,17 +609,17 @@ def _extract_version_from_text(text: str):
     return m.group(1)
 
 
-# ------------ CLI: python vlask.py ------------
+# ------------ CLI: vlask ------------
 
 
 HELP_TEXT = f"""Vlask helper script (version {VERSION})
 
 Usage:
-  python vlask.py init      Initialize a Vlask project in the current directory
-  python vlask.py bundle    Build the production frontend into ./public
-  python vlask.py update    Update vlask.py from the configured URL (see ~/.vlask.yml)
-  python vlask.py use       Show notes about how to install and use Vlask
-  python vlask.py help      Show this help (default)
+  vlask init      Initialize a Vlask project in the current directory
+  vlask bundle    Build the production frontend into ./public
+  vlask update    Update vlask.py from the configured URL (see ~/.vlask.yml)
+  vlask use       Show notes about how to install and use Vlask
+  vlask help      Show this help (default)
 """
 
 USE_TEXT = """Vlask usage notes
