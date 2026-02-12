@@ -182,7 +182,7 @@ export default defineConfig({
   root: ".",
   plugins: [react()],
   server: {
-    // host: '0.0.0.0', // uncomment to serve over network
+    host: 'localhost',
     allowedHosts: [],
     port: vitePort,
     strictPort: true,
