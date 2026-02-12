@@ -6,15 +6,16 @@ import socket
 import sys
 import urllib.request
 import urllib.error
+import zipfile
 from pathlib import Path
 
 try:
     from flask import Flask, send_from_directory, redirect
-except:
+except Exception:
     print("Flask is missing")
 
 
-VERSION = "0.1.4"
+VERSION = "0.1.5"
 
 DEFAULT_FRONTEND_DIR = "frontend"
 DEFAULT_PUBLIC_DIR = "public"
@@ -615,11 +616,15 @@ def _extract_version_from_text(text: str):
 HELP_TEXT = f"""Vlask helper script (version {VERSION})
 
 Usage:
-  vlask init      Initialize a Vlask project in the current directory
-  vlask bundle    Build the production frontend into ./public
-  vlask update    Update vlask.py from the configured URL (see ~/.vlask.yml)
-  vlask use       Show notes about how to install and use Vlask
-  vlask help      Show this help (default)
+  vlask init          Initialize a Vlask project in the current directory
+  vlask bundle        Build the production frontend into ./public
+  vlask bundle-zip    Build the production frontend and zip ./public into a .zip file
+  vlask update        Update vlask.py from the configured URL (see ~/.vlask.yml)
+  vlask use           Show notes about how to install and use Vlask
+  vlask help          Show this help (default)
+
+bundle-zip options (via env vars):
+  VLASK_ZIP_NAME      Output zip filename (default: public.zip)
 """
 
 USE_TEXT = """Vlask usage notes
@@ -745,6 +750,84 @@ def _cmd_bundle():
     print("[Vlask] Production bundle built into ./public")
 
 
+def _zip_dir(src_dir: Path, out_zip: Path):
+    """
+    Zips a directory into out_zip.
+    Stores paths relative to src_dir's parent (so zip contains `public/...`),
+    which is usually what you want for deploy artifacts.
+    """
+    src_dir = src_dir.resolve()
+    out_zip = out_zip.resolve()
+
+    if not src_dir.exists():
+        raise FileNotFoundError(f"Directory not found: {src_dir}")
+    if not src_dir.is_dir():
+        raise NotADirectoryError(f"Not a directory: {src_dir}")
+
+    base = src_dir.parent  # so arcname becomes "public/..."
+    if out_zip.exists():
+        out_zip.unlink()
+
+    with zipfile.ZipFile(out_zip, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for p in src_dir.rglob("*"):
+            if p.is_dir():
+                continue
+            arcname = p.relative_to(base)
+            zf.write(p, arcname.as_posix())
+
+
+def _cmd_bundle_zip():
+    """
+    Build production bundle into ./public, then zip it.
+
+    Output zip filename:
+      - env VLASK_ZIP_NAME (e.g. mysite-public.zip)
+      - default: public.zip
+
+    The zip is created in the project root.
+    """
+    root = Path(os.getcwd())
+    zip_name = os.getenv("VLASK_ZIP_NAME", "public.zip").strip() or "public.zip"
+    out_zip = root / zip_name
+
+    print("[Vlask] Building production bundle and creating zip artifact")
+    print("[Vlask] Project:", root)
+    print("[Vlask] Output zip:", out_zip)
+
+    # Reuse existing bundler (same behavior as `vlask bundle`)
+    app = Vlask(
+        __name__,
+        project_root=root,
+        prod=True,
+        backend_port=DEFAULT_BACKEND_PORT,
+        auto_build=False,
+        watch=False,
+    )
+
+    package_json = app.frontend_dir / "package.json"
+    if not package_json.exists():
+        print("[Vlask] No package.json found; cannot build frontend.")
+        return
+
+    node_modules = app.frontend_dir / "node_modules"
+    if not node_modules.exists():
+        print("[Vlask] node_modules not found, running npm install...")
+        app._run_cmd(["npm", "install"], cwd=app.frontend_dir)
+
+    app._run_cmd(["npm", "run", "build"], cwd=app.frontend_dir)
+
+    # Zip ./public
+    public_dir = app.public_dir
+    try:
+        _zip_dir(public_dir, out_zip)
+    except Exception as e:
+        print(f"[Vlask] Failed to create zip: {e}")
+        raise
+
+    size = out_zip.stat().st_size if out_zip.exists() else 0
+    print(f"[Vlask] Zip created: {out_zip} ({size} bytes)")
+
+
 def _cmd_update():
     print(f"[Vlask] Current version: {VERSION}")
 
@@ -797,6 +880,8 @@ def main():
             _cmd_create()
         elif cmd == "bundle":
             _cmd_bundle()
+        elif cmd in ("bundle-zip", "zip", "bundlezip"):
+            _cmd_bundle_zip()
         elif cmd == "update":
             _cmd_update()
         elif cmd == "use":
